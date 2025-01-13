@@ -1,0 +1,47 @@
+[project]
+authors = [{name = "Saito Tsutomu", email = "tsutomu7@hotmail.co.jp"}]
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python",
+  "Topic :: Software Development",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+  "nicegui>=2.9.1",
+  "numpy>=2.2.1",
+]
+description = "Reversi on NiceGUI"
+license = {text = "Apache-2.0"}
+name = "nicegui-reversi"
+readme = "README.md"
+requires-python = ">=3.11"
+version = "0.1.0"
+
+[project.urls]
+homepage = "https://github.com/SaitoTsutomu/nicegui-reversi"
+
+[project.scripts]
+reversi = "nicegui_reversi:main"
+
+[tool.uv]
+dev-dependencies = []
+
+[tool.mypy]
+files = "src"
+ignore_missing_imports = true
+
+[tool.ruff]
+src = ["src"]
+
+[tool.ruff.lint]
+ignore = ["ANN", "CPY", "D", "DOC", "E501"]
+preview = true
+select = ["ALL"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
