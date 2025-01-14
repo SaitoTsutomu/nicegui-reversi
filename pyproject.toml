@@ -10,13 +10,14 @@ classifiers = [
 dependencies = [
   "nicegui>=2.9.1",
   "numpy>=2.2.1",
+  "pytest>=8.3.4",
 ]
 description = "Reversi on NiceGUI"
 license = {text = "Apache-2.0"}
 name = "nicegui-reversi"
 readme = "README.md"
-requires-python = ">=3.11"
-version = "0.1.0"
+requires-python = ">=3.12"
+version = "0.1.1"
 
 [project.urls]
 homepage = "https://github.com/SaitoTsutomu/nicegui-reversi"

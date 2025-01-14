@@ -12,10 +12,16 @@ class State(IntEnum):
     Empty = 0
     Black = 1
     White = 2
-    OK = 3
+    OK = 3  # 手番で置けるところ
 
     def opponent(self) -> "State":
+        """Black <-> White"""
         return State.Black if self == State.White else State.White
+
+
+def ok_to_empty[T](board: T) -> T:  # Tはintまたはnp.ndarray
+    """State.Ok(3)であればState.Empty(0)に変換する"""
+    return board % 3  # type: ignore[operator, return-value]
 
 
 class Square(ui.element):
@@ -42,22 +48,23 @@ class Reversi:
     SAVE_FILE: ClassVar[str] = "reversi.toml"
 
     def __init__(self):
-        ui.label().bind_text(self, "message").classes("text-4xl")
-        with ui.grid(columns=8).classes("gap-0 bg-green"):
-            self.squares = [Square(self, x + y * 10) for y in range(1, 9) for x in range(1, 9)]
-        with ui.row():
-            ui.button("Reset", on_click=self.reset)
-            self.pass_button = ui.button("Pass", on_click=self.pass_)
-            self.pass_button.disable()
-            ui.button("Load", on_click=self.load)
-            ui.button("Save", on_click=self.save)
+        with ui.card(align_items="center"):
+            ui.label().bind_text(self, "message").classes("text-3xl")
+            with ui.grid(columns=8).classes("gap-0 bg-green"):
+                self.squares = [Square(self, x + y * 9) for y in range(1, 9) for x in range(1, 9)]
+            with ui.row():
+                ui.button("Reset", on_click=self.reset)
+                self.pass_button = ui.button("Pass", on_click=self.pass_)
+                self.pass_button.disable()
+                ui.button("Load", on_click=self.load)
+                ui.button("Save", on_click=self.save)
         self.reset()
 
     def reset(self) -> None:
         self.set_player(State.Black)
-        self.board = np.full(100, State.Empty, dtype=np.int8)
-        self.board[45:55:9] = 1
-        self.board[44:56:11] = 2
+        self.board = np.full(91, State.Empty, dtype=np.int8)
+        self.board[41:51:8] = 1
+        self.board[40:52:10] = 2
         self.rebuild()
 
     def set_player(self, player: State) -> None:
@@ -69,10 +76,10 @@ class Reversi:
         """置けるところをチェックし、置けるかを返す"""
         for y in range(1, 9):
             for x in range(1, 9):
-                index = x + y * 10
-                if board[index] % 3 == 0:
+                index = x + y * 9
+                if not ok_to_empty(board[index]):  # Empty or Ok
                     last_and_diffs = list(cls.calc_last_and_diff(index, player, board))
-                    board[index] = bool(last_and_diffs) * 3
+                    board[index] = State.OK if last_and_diffs else State.Empty
         return (board == State.OK).any()  # 置けるところがあるかどうか
 
     def rebuild(self) -> None:
@@ -87,27 +94,31 @@ class Reversi:
         self.check_ok(self.player, self.board)
         self.rebuild()
 
-    def save(self) -> None:
-        with Path(self.SAVE_FILE).open("w", encoding="utf-8") as fp:
-            fp.write(f'player = "{self.player.name}"\n')
-            fp.write("board = [\n")
-            for i in range(1, 9):
-                s, e = i * 10 + 1, i * 10 + 9
-                fp.write(f"  {(self.board[s:e] % 3).tolist()},\n")
-            fp.write("]\n")
+    def to_toml(self) -> str:
+        lst = [f'player = "{self.player.name}"', "board = ["]
+        for i in range(1, 9):
+            s, e = i * 9 + 1, i * 9 + 9
+            lst.append(f"  {ok_to_empty(self.board[s:e]).tolist()},")
+        lst.append("]")
+        return "\n".join(lst)
 
-    def load(self) -> None:
-        with Path(self.SAVE_FILE).open("rb") as fp:
-            dc = tomllib.load(fp)
+    def from_toml(self, toml: str) -> None:
+        dc = tomllib.loads(toml)
         self.set_player(State[dc["player"]])
-        board = np.full((10, 10), State.Empty, dtype=np.int8)
+        board = np.full((10, 9), State.Empty, dtype=np.int8)
         board[1:9, 1:9] = dc["board"]
-        self.board = board.flatten()
+        self.board = np.hstack([board.flatten(), [0]])
         self.rebuild()
         self.judge()
 
+    def save(self) -> None:
+        Path(self.SAVE_FILE).write_text(self.to_toml(), encoding="utf-8")
+
+    def load(self) -> None:
+        self.from_toml(Path(self.SAVE_FILE).read_text(encoding="utf-8"))
+
     def click(self, target: Square) -> None:
-        if self.board[target.index] % 3 or not self.place_disk(target.index):
+        if ok_to_empty(self.board[target.index]) != State.Empty or not self.place_disk(target.index):
             return
         self.board[target.index] = self.player
         self.set_player(self.player.opponent())
@@ -115,7 +126,7 @@ class Reversi:
         self.judge()
 
     def judge(self) -> None:
-        if (self.board % 3 == 0).any():
+        if (ok_to_empty(self.board) == State.Empty).any():
             if not self.pass_button.enabled:
                 return
             board = self.board.copy()
@@ -136,7 +147,7 @@ class Reversi:
     @classmethod
     def calc_last_and_diff(cls, index: int, player: State, board: np.ndarray) -> Iterator[tuple[int, int]]:
         opponent = player.opponent()
-        for diff in [-11, -10, -9, -1, 1, 9, 10, 11]:
+        for diff in [-10, -9, -8, -1, 1, 8, 9, 10]:
             for cnt in range(1, 9):
                 last = index + diff * cnt
                 value = board[last]
@@ -155,6 +166,6 @@ class Reversi:
         return True
 
 
-def main(*, reload=False, port=8101):
+def main(*, reload=False, port=8102):
     Reversi()
     ui.run(title="Reversi", reload=reload, port=port)
