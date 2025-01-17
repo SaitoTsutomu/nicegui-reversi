@@ -12,7 +12,7 @@ class State(IntEnum):
     Empty = 0
     Black = 1
     White = 2
-    OK = 3  # 手番で置けるところ
+    OK = 3  # 手番で置けるか
 
     def opponent(self) -> "State":
         """Black <-> White"""
@@ -30,9 +30,10 @@ class Square(ui.element):
     def __init__(self, reversi: "Reversi", index: int):
         super().__init__("div")
         self.reversi = reversi
-        self.index = index
+        self.index = index  # 左上が1+1*9、右下が8+8*9
 
     def build(self, value: State) -> None:
+        """UI作成"""
         self.clear()  # 子要素をクリア
         with self:
             classes = "w-9 h-9 text-3xl text-center border border-black"
@@ -40,12 +41,12 @@ class Square(ui.element):
 
 
 class Reversi:
-    player: State = State.Black
-    board: np.ndarray
-    message: str = ""
-    squares: list[Square]
-    pass_button: elements.button.Button
-    SAVE_FILE: ClassVar[str] = "reversi.toml"
+    player: State = State.Black  # 手番
+    board: np.ndarray  # 10*9+1個のint8の1次元配列
+    message: str = ""  # 手番や勝敗の表示
+    squares: list[Square]  # 64個のマス
+    pass_button: elements.button.Button  # PASSボタン
+    SAVE_FILE: ClassVar[str] = "reversi.toml"  # ファイル名
 
     def __init__(self):
         with ui.card(align_items="center"):
@@ -61,40 +62,44 @@ class Reversi:
         self.reset()
 
     def reset(self) -> None:
+        """ゲームの初期化"""
         self.set_player(State.Black)
         self.board = np.full(91, State.Empty, dtype=np.int8)
-        self.board[41:51:8] = 1
-        self.board[40:52:10] = 2
+        self.board[41:51:8] = State.Black
+        self.board[40:52:10] = State.White
         self.rebuild()
 
     def set_player(self, player: State) -> None:
+        """手番設定"""
         self.player = player
         self.message = f"{self.player.name}'s turn"
 
     @classmethod
-    def check_ok(cls, player: State, board: np.ndarray) -> bool:
-        """置けるところをチェックし、置けるかを返す"""
+    def set_ok(cls, player: State, board: np.ndarray) -> bool:
+        """置けるマスをチェックし、置けるかを返す"""
         for y in range(1, 9):
             for x in range(1, 9):
                 index = x + y * 9
                 if not ok_to_empty(board[index]):  # Empty or Ok
                     last_and_diffs = list(cls.calc_last_and_diff(index, player, board))
                     board[index] = State.OK if last_and_diffs else State.Empty
-        return (board == State.OK).any()  # 置けるところがあるかどうか
+        return (board == State.OK).any()  # 置けるマスがあるかどうか
 
     def rebuild(self) -> None:
-        """置けるところをチェックし、Squareの再作成"""
-        exist_ok = self.check_ok(self.player, self.board)
+        """置けるマスをチェックし、Squareの再作成"""
+        exist_ok = self.set_ok(self.player, self.board)
         for square in self.squares:
             square.build(self.board[square.index])
         self.pass_button.set_enabled(not exist_ok)
 
     def pass_(self) -> None:
+        """パス処理"""
         self.set_player(self.player.opponent())
-        self.check_ok(self.player, self.board)
+        self.set_ok(self.player, self.board)
         self.rebuild()
 
     def to_toml(self) -> str:
+        """ゲームの状態をTOML化"""
         lst = [f'player = "{self.player.name}"', "board = ["]
         for i in range(1, 9):
             s, e = i * 9 + 1, i * 9 + 9
@@ -103,6 +108,7 @@ class Reversi:
         return "\n".join(lst)
 
     def from_toml(self, toml: str) -> None:
+        """TOMLからゲームの状態を復元"""
         dc = tomllib.loads(toml)
         self.set_player(State[dc["player"]])
         board = np.full((10, 9), State.Empty, dtype=np.int8)
@@ -112,12 +118,15 @@ class Reversi:
         self.judge()
 
     def save(self) -> None:
+        """ゲームの状態をファイルに保存"""
         Path(self.SAVE_FILE).write_text(self.to_toml(), encoding="utf-8")
 
     def load(self) -> None:
+        """ファイルからゲームの状態を読込"""
         self.from_toml(Path(self.SAVE_FILE).read_text(encoding="utf-8"))
 
     def click(self, target: Square) -> None:
+        """マスのクリック"""
         if ok_to_empty(self.board[target.index]) != State.Empty or not self.place_disk(target.index):
             return
         self.board[target.index] = self.player
@@ -126,11 +135,12 @@ class Reversi:
         self.judge()
 
     def judge(self) -> None:
-        if (ok_to_empty(self.board) == State.Empty).any():
-            if not self.pass_button.enabled:
+        """終局判定"""
+        if (ok_to_empty(self.board) == State.Empty).any():  # 空きマスあり
+            if not self.pass_button.enabled:  # 置けるマスあり
                 return
             board = self.board.copy()
-            if self.check_ok(self.player.opponent(), board):
+            if self.set_ok(self.player.opponent(), board):  # 相手は置ける
                 return
         self.pass_button.disable()
         n_black = (self.board == State.Black).sum()
@@ -146,6 +156,11 @@ class Reversi:
 
     @classmethod
     def calc_last_and_diff(cls, index: int, player: State, board: np.ndarray) -> Iterator[tuple[int, int]]:
+        """indexに置いたとき、8方向ごとにどれだけひっくり返せるか
+
+        diffが方向
+        lastが挟むための自分のディスクの位置
+        """
         opponent = player.opponent()
         for diff in [-10, -9, -8, -1, 1, 8, 9, 10]:
             for cnt in range(1, 9):
@@ -157,6 +172,7 @@ class Reversi:
                     break
 
     def place_disk(self, index: int) -> bool:
+        """ディスクを置く"""
         last_and_diffs = list(self.calc_last_and_diff(index, self.player, self.board))
         if not last_and_diffs:
             return False
