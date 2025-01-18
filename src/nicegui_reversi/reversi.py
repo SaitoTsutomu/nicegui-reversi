@@ -1,11 +1,15 @@
 import tomllib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from enum import IntEnum
+from functools import partial
+from itertools import product
 from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
 from nicegui import elements, ui
+
+R19 = range(1, 9)  # マスの縦または横の範囲
 
 
 class State(IntEnum):
@@ -31,17 +35,17 @@ class Square(ui.element):
 
     chars: ClassVar[list[str]] = ["", "⚫️", "⚪️", "・"]
 
-    def __init__(self, reversi: "Game", index: int):
+    def __init__(self, click: Callable):
         super().__init__("div")
-        self.reversi = reversi
-        self.index = index  # 左上が1+1*9、右下が8+8*9
+        self.click = click
 
     def build(self, value: State) -> None:
         """GUI作成"""
         self.clear()  # 子要素をクリア
         with self:
             classes = "w-9 h-9 text-3xl text-center border border-black"
-            ui.label(self.chars[value]).classes(classes).on("click", lambda: self.reversi.click(self))
+            classes += " cursor-pointer" if value == State.OK else " cursor-default"
+            ui.label(self.chars[value]).classes(classes).on("click", self.click)
 
 
 class Game:
@@ -58,7 +62,7 @@ class Game:
         with ui.card(align_items="center"):
             ui.label().bind_text(self, "message").classes("text-3xl")
             with ui.grid(columns=8).classes("gap-0 bg-green"):
-                self.squares = [Square(self, x + y * 9) for y in range(1, 9) for x in range(1, 9)]
+                self.squares = [Square(partial(self.click, x + y * 9)) for y in R19 for x in R19]
             with ui.row():
                 ui.button("Reset", on_click=self.reset)
                 self.pass_button = ui.button("Pass", on_click=self.pass_)
@@ -83,19 +87,18 @@ class Game:
     @classmethod
     def set_ok(cls, player: State, board: np.ndarray) -> bool:
         """置けるマスをチェックし、置けるかを返す"""
-        for y in range(1, 9):
-            for x in range(1, 9):
-                index = x + y * 9
-                if not ok_to_empty(board[index]):  # Empty or OK
-                    can_place = any(cls.calc_last_and_diff(index, player, board))
-                    board[index] = State.OK if can_place else State.Empty
+        for y, x in product(R19, R19):
+            index = x + y * 9
+            if not ok_to_empty(board[index]):  # Empty or OK
+                can_place = any(cls.calc_last_and_diff(index, player, board))
+                board[index] = State.OK if can_place else State.Empty
         return (board == State.OK).any()  # 置けるマスがあるかどうか
 
     def rebuild(self) -> None:
         """置けるマスをチェックし、Squareの再作成"""
         exist_ok = self.set_ok(self.player, self.board)
-        for square in self.squares:
-            square.build(self.board[square.index])
+        for square, (y, x) in zip(self.squares, product(R19, R19), strict=True):
+            square.build(self.board[x + y * 9])
         self.pass_button.set_enabled(not exist_ok)
 
     def pass_(self) -> None:
@@ -107,9 +110,7 @@ class Game:
     def to_toml(self) -> str:
         """ゲームの状態をTOML化"""
         lst = [f'player = "{self.player.name}"', "board = ["]
-        for i in range(1, 9):
-            s, e = i * 9 + 1, i * 9 + 9
-            lst.append(f"  {ok_to_empty(self.board[s:e]).tolist()},")
+        lst.extend(f"  {ok_to_empty(self.board[i * 9 + 1 : i * 9 + 9]).tolist()}," for i in R19)
         lst.append("]")
         return "\n".join(lst)
 
@@ -131,11 +132,11 @@ class Game:
         """ファイルからゲームの状態を読込"""
         self.from_toml(Path(self.SAVE_FILE).read_text(encoding="utf-8"))
 
-    def click(self, target: Square) -> None:
+    def click(self, index: int) -> None:
         """マスのクリック"""
-        if ok_to_empty(self.board[target.index]) != State.Empty or not self.place_disk(target.index):
+        if ok_to_empty(self.board[index]) != State.Empty or not self.place_disk(index):
             return
-        self.board[target.index] = self.player
+        self.board[index] = self.player
         self.set_player(self.player.opponent())
         self.rebuild()
         self.judge()
@@ -169,7 +170,7 @@ class Game:
         """
         opponent = player.opponent()
         for diff in [-10, -9, -8, -1, 1, 8, 9, 10]:
-            for cnt in range(1, 9):
+            for cnt in R19:
                 last = index + diff * cnt
                 value = board[last]
                 if value != opponent:
