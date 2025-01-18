@@ -9,6 +9,8 @@ from nicegui import elements, ui
 
 
 class State(IntEnum):
+    """マスの状態または手番"""
+
     Empty = 0
     Black = 1
     White = 2
@@ -25,22 +27,26 @@ def ok_to_empty[T](board: T) -> T:  # Tはintまたはnp.ndarray
 
 
 class Square(ui.element):
+    """GUI部品としてのマス"""
+
     chars: ClassVar[list[str]] = ["", "⚫️", "⚪️", "・"]
 
-    def __init__(self, reversi: "Reversi", index: int):
+    def __init__(self, reversi: "Game", index: int):
         super().__init__("div")
         self.reversi = reversi
         self.index = index  # 左上が1+1*9、右下が8+8*9
 
     def build(self, value: State) -> None:
-        """UI作成"""
+        """GUI作成"""
         self.clear()  # 子要素をクリア
         with self:
             classes = "w-9 h-9 text-3xl text-center border border-black"
             ui.label(self.chars[value]).classes(classes).on("click", lambda: self.reversi.click(self))
 
 
-class Reversi:
+class Game:
+    """リバーシゲーム"""
+
     player: State = State.Black  # 手番
     board: np.ndarray  # 10*9+1個のint8の1次元配列
     message: str = ""  # 手番や勝敗の表示
@@ -183,5 +189,5 @@ class Reversi:
 
 
 def main(*, reload=False, port=8102):
-    Reversi()
+    Game()
     ui.run(title="Reversi", reload=reload, port=port)

@@ -1,10 +1,11 @@
 # flake8: noqa: S101
 from textwrap import dedent
 
-from nicegui_reversi import Reversi
+from nicegui_reversi import Game
 
 
 def test_place_disk():
+    """ディスクを置いたときのテスト"""
     before = dedent("""\
         player = "Black"
         board = [
@@ -29,7 +30,7 @@ def test_place_disk():
           [0, 0, 0, 0, 0, 0, 0, 0],
           [0, 0, 0, 0, 0, 0, 0, 0],
         ]""")
-    reversi = Reversi()
+    reversi = Game()
     reversi.from_toml(before)
     result = reversi.place_disk(3 + 4 * 9)
     assert result
