@@ -81,8 +81,8 @@ class Reversi:
             for x in range(1, 9):
                 index = x + y * 9
                 if not ok_to_empty(board[index]):  # Empty or OK
-                    exist_ok = any(cls.calc_last_and_diff(index, player, board))
-                    board[index] = State.OK if exist_ok else State.Empty
+                    can_place = any(cls.calc_last_and_diff(index, player, board))
+                    board[index] = State.OK if can_place else State.Empty
         return (board == State.OK).any()  # 置けるマスがあるかどうか
 
     def rebuild(self) -> None:
