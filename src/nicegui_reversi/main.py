@@ -20,7 +20,7 @@ class State(IntEnum):
 
 
 def ok_to_empty[T](board: T) -> T:  # Tはintまたはnp.ndarray
-    """State.Ok(3)であればState.Empty(0)に変換する"""
+    """State.OK(3)であればState.Empty(0)に変換する"""
     return board % 3  # type: ignore[operator, return-value]
 
 
@@ -80,9 +80,9 @@ class Reversi:
         for y in range(1, 9):
             for x in range(1, 9):
                 index = x + y * 9
-                if not ok_to_empty(board[index]):  # Empty or Ok
-                    last_and_diffs = list(cls.calc_last_and_diff(index, player, board))
-                    board[index] = State.OK if last_and_diffs else State.Empty
+                if not ok_to_empty(board[index]):  # Empty or OK
+                    exist_ok = any(cls.calc_last_and_diff(index, player, board))
+                    board[index] = State.OK if exist_ok else State.Empty
         return (board == State.OK).any()  # 置けるマスがあるかどうか
 
     def rebuild(self) -> None:
