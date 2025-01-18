@@ -64,11 +64,11 @@ class Game:
             with ui.grid(columns=8).classes("gap-0 bg-green"):
                 self.squares = [Square(partial(self.click, x + y * 9)) for y in R19 for x in R19]
             with ui.row():
-                ui.button("Reset", on_click=self.reset)
-                self.pass_button = ui.button("Pass", on_click=self.pass_)
+                ui.button("reset", on_click=self.reset)
+                self.pass_button = ui.button("pass", on_click=self.pass_)
                 self.pass_button.disable()
-                ui.button("Load", on_click=self.load)
-                ui.button("Save", on_click=self.save)
+                ui.button("load", on_click=self.load)
+                ui.button("save", on_click=self.save)
         self.reset()
 
     def reset(self) -> None:
