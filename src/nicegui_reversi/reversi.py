@@ -45,6 +45,7 @@ class Square(ui.element):
         return chars[self.game.board[self.index]]
 
 
+@ui.page("/")
 class Game:
     """リバーシゲーム"""
 
@@ -185,5 +186,4 @@ class Game:
 
 
 def main(*, reload=False, port=8102):  # noqa: D103
-    Game()
     ui.run(title="Reversi", reload=reload, port=port)
