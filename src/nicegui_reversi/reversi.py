@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
-from nicegui import elements, ui
+from nicegui import app, elements, ui
 
 
 class State(IntEnum):
@@ -45,7 +45,6 @@ class Square(ui.element):
         return chars[self.game.board[self.index]]
 
 
-@ui.page("/")
 class Game:
     """リバーシゲーム"""
 
@@ -54,20 +53,25 @@ class Game:
     message: str  # 手番や勝敗の表示
     squares: list[Square]  # 64個のマス
     pass_button: elements.button.Button  # PASSボタン
+    save_to_storage: bool  # 変更時にゲームの状態を保存するかどうか
     SAVE_FILE: ClassVar[str] = "reversi.toml"  # ファイル名
 
-    def __init__(self):
+    def __init__(self, toml: str | None, *, save_to_storage: bool = True):
         self.board = np.zeros(91, dtype=np.int8)
         self.message = ""
+        self.save_to_storage = save_to_storage
         ui.label().bind_text(self, "message").classes("text-3xl")
         with ui.grid(columns=8).classes("gap-0 bg-green"):
             self.squares = [Square(self, x + y * 9) for y in range(1, 9) for x in range(1, 9)]
         with ui.row():
             ui.button("reset", on_click=self.reset)
             self.pass_button = ui.button("pass", on_click=self.pass_)
-            ui.button("load", on_click=self.load)
-            ui.button("save", on_click=self.save)
-        self.reset()
+            ui.button("load", on_click=self.load_file)
+            ui.button("save", on_click=self.save_file)
+        if toml:
+            self.from_toml(toml)
+        else:
+            self.reset()
 
     def reset(self) -> None:
         """ゲームの初期化"""
@@ -76,6 +80,7 @@ class Game:
         self.board[41:51:8] = State.Black
         self.board[40:52:10] = State.White
         self.set_pass_button()
+        self.save()
 
     def set_player(self, player: State) -> None:
         """手番設定"""
@@ -101,6 +106,7 @@ class Game:
         self.set_player(self.player.opponent())
         self.set_ok(self.player, self.board)
         self.set_pass_button()
+        self.save()
 
     def to_toml(self) -> str:
         """ゲームの状態をTOML化"""
@@ -118,12 +124,18 @@ class Game:
         self.board = np.hstack([board.flatten(), [0]])
         self.set_pass_button()
         self.judge()
+        self.save()
 
     def save(self) -> None:
+        """ゲームの状態をストレージに保存"""
+        if self.save_to_storage:
+            app.storage.tab["game"] = self.to_toml()
+
+    def save_file(self) -> None:
         """ゲームの状態をファイルに保存"""
         Path(self.SAVE_FILE).write_text(self.to_toml(), encoding="utf-8")
 
-    def load(self) -> None:
+    def load_file(self) -> None:
         """ファイルからゲームの状態を読込"""
         self.from_toml(Path(self.SAVE_FILE).read_text(encoding="utf-8"))
 
@@ -135,6 +147,7 @@ class Game:
             self.set_player(self.player.opponent())
             self.set_pass_button()
             self.judge()
+            self.save()
 
     def judge(self) -> None:
         """終局判定"""
@@ -183,6 +196,13 @@ class Game:
         for last, diff in last_and_diffs:
             self.board[index:last:diff] = self.player
         return True
+
+
+@ui.page("/")
+async def top_page():
+    """トップページ"""
+    await ui.context.client.connected()
+    Game(app.storage.tab.get("game"))
 
 
 def main(*, reload=False, port=8102):  # noqa: D103

@@ -30,8 +30,7 @@ def test_place_disk():
           [0, 0, 0, 0, 0, 0, 0, 0],
           [0, 0, 0, 0, 0, 0, 0, 0],
         ]""")
-    reversi = Game()
-    reversi.from_toml(before)
-    result = reversi.place_disk(3 + 4 * 9)
-    assert result
+    reversi = Game(before, save_to_storage=False)
+    place_ok = reversi.place_disk(3 + 4 * 9)
+    assert place_ok
     assert reversi.to_toml() == after
