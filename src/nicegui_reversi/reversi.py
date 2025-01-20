@@ -48,14 +48,16 @@ class Square(ui.element):
 class Game:
     """リバーシゲーム"""
 
-    player = State.Black  # 手番
-    board = np.zeros(91, dtype=np.int8)  # 10*9+1個の1次元配列
-    message = ""  # 手番や勝敗の表示
+    player: State  # 手番
+    board: np.ndarray  # 10*9+1個の1次元配列
+    message: str  # 手番や勝敗の表示
     squares: list[Square]  # 64個のマス
     pass_button: elements.button.Button  # PASSボタン
     SAVE_FILE: ClassVar[str] = "reversi.toml"  # ファイル名
 
     def __init__(self):
+        self.board = np.zeros(91, dtype=np.int8)
+        self.message = ""
         ui.label().bind_text(self, "message").classes("text-3xl")
         with ui.grid(columns=8).classes("gap-0 bg-green"):
             self.squares = [Square(self, x + y * 9) for y in range(1, 9) for x in range(1, 9)]
