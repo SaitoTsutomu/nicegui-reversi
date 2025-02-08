@@ -61,7 +61,7 @@ class Game:
         self.message = ""
         self.save_to_storage = save_to_storage
         ui.label().bind_text(self, "message").classes("text-3xl")
-        with ui.grid(columns=8).classes("gap-0 bg-green"):
+        with ui.grid(columns=8).classes("gap-0 bg-green").style("user-select: none;"):
             self.squares = [Square(self, x + y * 9) for y in range(1, 9) for x in range(1, 9)]
         with ui.row():
             ui.button("reset", on_click=self.reset)

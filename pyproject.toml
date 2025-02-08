@@ -8,7 +8,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "nicegui>=2.10.0",
+  "nicegui>=2.11.0",
   "numpy>=2.2.2",
 ]
 description = "Reversi on NiceGUI"
@@ -16,7 +16,7 @@ license = {text = "Apache-2.0"}
 name = "nicegui-reversi"
 readme = "README.md"
 requires-python = ">=3.12"
-version = "0.2.2"
+version = "0.2.3"
 
 [project.urls]
 homepage = "https://github.com/SaitoTsutomu/nicegui-reversi"

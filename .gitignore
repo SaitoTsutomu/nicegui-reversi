@@ -1,4 +1,5 @@
 # Extra
+.nicegui/
 reversi.toml
 tmp/
 nbs/
