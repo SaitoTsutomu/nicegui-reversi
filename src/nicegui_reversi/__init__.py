@@ -1,3 +1,5 @@
+"""nicegui_reversi"""
+
 from importlib.metadata import metadata
 
 from .reversi import Game, main

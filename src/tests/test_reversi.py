@@ -1,10 +1,12 @@
+"""テスト"""
+
 # flake8: noqa: S101
 from textwrap import dedent
 
 from nicegui_reversi import Game
 
 
-def test_place_disk():
+def test_place_disk() -> None:
     """ディスクを置いたときのテスト"""
     before = dedent("""\
         player = "Black"

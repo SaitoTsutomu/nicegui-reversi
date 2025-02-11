@@ -1,3 +1,5 @@
+"""nicegui_reversi"""
+
 import tomllib
 from collections.abc import Iterable
 from enum import IntEnum
@@ -30,7 +32,8 @@ def ok_to_empty[T](board: T) -> T:  # Tはintまたはnp.ndarray
 class Square(ui.element):
     """GUI部品としてのマス"""
 
-    def __init__(self, game: "Game", index: int):
+    def __init__(self, game: "Game", index: int) -> None:
+        """初期化とGUI作成"""
         super().__init__("div")
         self.game = game
         self.index = index
@@ -39,7 +42,7 @@ class Square(ui.element):
             ui.label().bind_text(self, "text").classes(classes).on("click", lambda: game.click(index))
 
     @property
-    def text(self):
+    def text(self) -> str:
         """表示する文字"""
         chars = ["", "⚫️", "⚪️", "・"]
         return chars[self.game.board[self.index]]
@@ -56,7 +59,8 @@ class Game:
     save_to_storage: bool  # 変更時にゲームの状態を保存するかどうか
     SAVE_FILE: ClassVar[str] = "reversi.toml"  # ファイル名
 
-    def __init__(self, toml: str | None, *, save_to_storage: bool = True):
+    def __init__(self, toml: str | None, *, save_to_storage: bool = True) -> None:
+        """初期化とGUI作成"""
         self.board = np.zeros(91, dtype=np.int8)
         self.message = ""
         self.save_to_storage = save_to_storage
@@ -175,7 +179,7 @@ class Game:
         :param index: boardの位置
         :param player: 手番
         :param board: 盤面
-        :yield: 「挟むための自分のディスクの位置」と方向(差分)
+        :yields: 「挟むための自分のディスクの位置」と方向(差分)
         """
         opponent = player.opponent()
         for diff in [-10, -9, -8, -1, 1, 8, 9, 10]:
@@ -199,11 +203,12 @@ class Game:
 
 
 @ui.page("/")
-async def top_page():
+async def top_page() -> None:
     """トップページ"""
     await ui.context.client.connected()
     Game(app.storage.tab.get("game"))
 
 
-def main(*, reload=False, port=8102):  # noqa: D103
+def main(*, reload: bool = False, port: int = 8102) -> None:
+    """ゲーム実行"""
     ui.run(title="Reversi", reload=reload, port=port)

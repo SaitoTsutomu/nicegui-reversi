@@ -37,7 +37,7 @@ ignore_missing_imports = true
 src = ["src"]
 
 [tool.ruff.lint]
-ignore = ["ANN", "CPY", "D100", "D104", "D107", "D203", "D213", "D400", "D415", "DOC", "E501"]
+ignore = ["ANN", "CPY", "D100", "D104", "D107", "D203", "D213", "D400", "D415", "DOC201", "DOC402", "E501"]
 preview = true
 select = ["ALL"]
 
