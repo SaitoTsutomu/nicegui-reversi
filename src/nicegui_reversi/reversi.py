@@ -209,6 +209,6 @@ async def top_page() -> None:
     Game(app.storage.tab.get("game"))
 
 
-def main(*, reload: bool = False, port: int = 8102) -> None:
+def run_game(*, port: int | None = None) -> None:
     """ゲーム実行"""
-    ui.run(title="Reversi", reload=reload, port=port)
+    ui.run(title="Reversi", reload=False, port=port)
