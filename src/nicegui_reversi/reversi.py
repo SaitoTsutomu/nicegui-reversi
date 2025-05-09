@@ -65,6 +65,11 @@ class Game:
         self.message = ""
         self.save_to_storage = save_to_storage
         ui.label().bind_text(self, "message").classes("text-3xl")
+        with ui.row().classes("items-center text-xl my-2"):
+            ui.label("⚫️ Black:").classes("mr-1")
+            ui.label().bind_text(self, "n_black")
+            ui.label("⚪️ White:").classes("ml-4 mr-1")
+            ui.label().bind_text(self, "n_white")
         with ui.grid(columns=8).classes("gap-0 bg-green").style("user-select: none;"):
             self.squares = [Square(self, x + y * 9) for y in range(1, 9) for x in range(1, 9)]
         with ui.row():
@@ -90,6 +95,16 @@ class Game:
         """手番設定"""
         self.player = player
         self.message = f"{self.player.name}'s turn"
+
+    @property
+    def n_black(self) -> int:
+        """黒のコマ数"""
+        return int((self.board == State.Black).sum())
+
+    @property
+    def n_white(self) -> int:
+        """白のコマ数"""
+        return int((self.board == State.White).sum())
 
     @classmethod
     def set_ok(cls, player: State, board: np.ndarray) -> bool:
